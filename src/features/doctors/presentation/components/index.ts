@@ -1,0 +1,6 @@
+export { DoctorHeader } from './DoctorHeader'
+export { AppointmentCard } from './AppointmentCard'
+export { NewPrescriptionModal } from './NewPrescriptionModal'
+export { AppointmentDetailsModal } from './AppointmentDetailsModal'
+export { StartConsultationModal } from './StartConsultationModal'
+export { SuccessModal } from './SuccessModal' 
