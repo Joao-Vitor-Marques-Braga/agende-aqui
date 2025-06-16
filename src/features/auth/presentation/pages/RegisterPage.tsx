@@ -1,16 +1,19 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Input, Button, Header } from '../../../../shared/components'
+import { useRegister } from '../../application/hooks/useRegister'
+import { loginWithGoogle } from '../../infrastructure/authService'
 
 export function RegisterPage() {
+    const [errors, setErrors] = useState<Record<string, string>>({})
     const [formData, setFormData] = useState({
         name: '',
         email: '',
         password: '',
         confirmPassword: ''
     })
-    const [loading, setLoading] = useState(false)
-    const [errors, setErrors] = useState<Record<string, string>>({})
+    const { execute, loading } = useRegister()
+    const navigate = useNavigate()
 
     const handleInputChange = (field: string, value: string) => {
         setFormData(prev => ({ ...prev, [field]: value }))
@@ -38,18 +41,21 @@ export function RegisterPage() {
 
         if (!validateForm()) return
 
-        setLoading(true)
-
-        // Simular requisição de cadastro
-        await new Promise(resolve => setTimeout(resolve, 1000))
-
-        console.log('Cadastro:', formData)
-        setLoading(false)
+        try {
+            await execute({ name: formData.name, email: formData.email, password: formData.password })
+            navigate('/dashboard')
+        } catch (err) {
+            console.error(err)
+        }
     }
 
-    const handleGoogleSignup = () => {
-        // Implementar cadastro com Google
-        console.log('Cadastro com Google')
+    const handleGoogleSignup = async () => {
+        try {
+            await loginWithGoogle()
+            navigate('/dashboard')
+        } catch (err) {
+            console.error(err)
+        }
     }
 
     return (
@@ -105,7 +111,7 @@ export function RegisterPage() {
                                     className="w-full"
                                     loading={loading}
                                 >
-                                    Entrar
+                                    Cadastrar
                                 </Button>
 
                                 <div className="text-center">

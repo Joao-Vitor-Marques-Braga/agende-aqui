@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Header, Input, Button } from '../../../../shared/components'
+import { Header, Input, Button } from '../../../../../shared/components'
 
 export function DoctorLoginPage() {
   const [crm, setCrm] = useState('')

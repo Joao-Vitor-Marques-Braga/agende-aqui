@@ -1,26 +1,33 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Input, Button, Header } from '../../../../shared/components'
+import { useLogin } from '../../application/hooks/useLogin'
+import { loginWithGoogle } from '../../infrastructure/authService'
 
 export function LoginPage() {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
-    const [loading, setLoading] = useState(false)
     const navigate = useNavigate()
+
+    const { execute, loading } = useLogin()
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        setLoading(true)
-
-        await new Promise(resolve => setTimeout(resolve, 1000))
-
-        console.log('Login:', { email, password })
-        setLoading(false)
-        navigate('/dashboard')
+        try {
+            await execute({ email, password })
+            navigate('/dashboard')
+        } catch (err) {
+            console.error(err)
+        }
     }
 
-    const handleGoogleLogin = () => {
-        console.log('Login com Google')
+    const handleGoogleLogin = async () => {
+        try {
+            await loginWithGoogle()
+            navigate('/dashboard')
+        } catch (err) {
+            console.error(err)
+        }
     }
 
     return (

@@ -3,8 +3,8 @@ import { LoginPage, RegisterPage } from '../features/auth/presentation/pages'
 import { DashboardPage } from '../features/dashboard/presentation/pages'
 import { PrescriptionsPage } from '../features/documents/presentation/pages'
 import { TelemedicinePage } from '../features/telemedicine/presentation/pages'
+import { DoctorLoginPage, DoctorRegisterPage } from '../features/doctors/auth/presentation/pages'
 import { 
-  DoctorLoginPage, 
   DoctorDashboardPage, 
   DoctorPrescriptionsPage, 
   DoctorTelemedicinePage 
@@ -39,6 +39,7 @@ export function AppRoutes() {
         <Route path="/reuniao" element={<TelemedicinePage />} />
         
         <Route path="/medico/login" element={<DoctorLoginPage />} />
+        <Route path="/medico/register" element={<DoctorRegisterPage />} />
         <Route path="/medico/dashboard" element={<DoctorDashboardPage />} />
         <Route path="/medico/receitas" element={<DoctorPrescriptionsPage />} />
         <Route path="/medico/reuniao" element={<DoctorTelemedicinePage />} />
