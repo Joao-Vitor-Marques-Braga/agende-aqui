@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Modal, Button } from '../../../../shared/components'
+import { createAppointment } from '../../application/useCases/createAppointment'
 
 interface Doctor {
   id: string
@@ -43,17 +44,26 @@ export function AppointmentModal({ isOpen, onClose, doctor }: AppointmentModalPr
   const [showConfirmation, setShowConfirmation] = useState(false)
 
   const handleSchedule = async () => {
-    if (!selectedDate || !selectedTime) {
+    if (!selectedDate || !selectedTime || !doctor) {
       alert('Por favor, selecione data e horário')
       return
     }
 
     setLoading(true)
-    
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    
-    setLoading(false)
-    setShowConfirmation(true)
+
+    try {
+      await createAppointment({
+        doctorId: doctor.id,
+        doctorName: doctor.name,
+        specialty: doctor.specialty,
+        date: selectedDate,
+        time: selectedTime
+      })
+    } catch (error) {
+      console.error('Erro ao agendar consulta:', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleConfirmationClose = () => {

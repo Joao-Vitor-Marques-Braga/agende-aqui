@@ -10,5 +10,15 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src')
     }
+  },
+  server: {
+    // Melhorar tratamento de erros durante desenvolvimento
+    hmr: {
+      overlay: true
+    }
+  },
+  define: {
+    // Suprime alguns warnings desnecessários em desenvolvimento
+    __DEV__: JSON.stringify(process.env.NODE_ENV !== 'production')
   }
 })

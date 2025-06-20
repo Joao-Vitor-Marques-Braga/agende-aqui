@@ -1,0 +1,1 @@
+export { RegisterDoctorByClinicPage } from './RegisterDoctorByClinicPage' 

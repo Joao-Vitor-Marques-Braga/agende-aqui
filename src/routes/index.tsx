@@ -10,6 +10,10 @@ import {
   DoctorTelemedicinePage 
 } from '../features/doctors/presentation/pages'
 import { Header } from '../shared/components'
+import { LoginClinicsPage } from '../features/clinics/auth/presentation/LoginClinicsPage'
+import { RegisterClinicsPage } from '../features/clinics/auth/presentation/RegisterClinicsPage'
+import { DashboardClinicPage } from '@/features/clinics/dashboard/presentation/pages/DashboardClinicPage'
+import { RegisterDoctorByClinicPage } from '../features/clinics/doctors/presentation/pages'
 
 function ComingSoon({ title }: { title: string }) {
   return (
@@ -43,6 +47,11 @@ export function AppRoutes() {
         <Route path="/medico/dashboard" element={<DoctorDashboardPage />} />
         <Route path="/medico/receitas" element={<DoctorPrescriptionsPage />} />
         <Route path="/medico/reuniao" element={<DoctorTelemedicinePage />} />
+        
+        <Route path="/clinica/login" element={<LoginClinicsPage />} />
+        <Route path="/clinica/register" element={<RegisterClinicsPage />} />
+        <Route path="/clinica/dashboard" element={<DashboardClinicPage />} />
+        <Route path="/clinica/cadastrar-medico" element={<RegisterDoctorByClinicPage />} />
         
         <Route path="/agendamentos" element={<ComingSoon title="Agendamentos" />} />
         <Route path="/forgot-password" element={<ComingSoon title="Esqueci a Senha" />} />
