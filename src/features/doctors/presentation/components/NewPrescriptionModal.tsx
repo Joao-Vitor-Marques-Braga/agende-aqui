@@ -1,55 +1,68 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Input, Button } from '../../../../shared/components'
+import { useCreatePrescription } from '../../prescriptions/application/hooks/useCreatePrescription'
+import type { PrescriptionData } from '../../prescriptions/infrastructure/prescriptionService'
+import type { AppointmentWithPrescription } from '../../prescriptions/application/hooks/useCompletedAppointments'
 
 interface NewPrescriptionModalProps {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (prescription: PrescriptionData) => void
+  selectedAppointment?: AppointmentWithPrescription | null
+  onPrescriptionCreated?: () => void
 }
 
-interface PrescriptionData {
-  patientName: string
-  patientCPF: string
-  medications: string
-  dosage: string
-  instructions: string
-  duration: string
-  observations?: string
-}
-
-export function NewPrescriptionModal({ isOpen, onClose, onSubmit }: NewPrescriptionModalProps) {
+export function NewPrescriptionModal({ isOpen, onClose, selectedAppointment, onPrescriptionCreated }: NewPrescriptionModalProps) {
+  const { execute: createPrescription, loading: isSubmitting, error: createError } = useCreatePrescription()
+  
   const [formData, setFormData] = useState<PrescriptionData>({
     patientName: '',
-    patientCPF: '',
     medications: '',
     dosage: '',
     instructions: '',
     duration: '',
     observations: ''
   })
-  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (selectedAppointment) {
+      setFormData(prev => ({
+        ...prev,
+        patientName: selectedAppointment.patientName || '',
+      }))
+    }
+  }, [selectedAppointment])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!formData.patientName || !formData.patientCPF || !formData.medications || !formData.dosage) {
+    if (!formData.patientName || !formData.medications || !formData.dosage) {
       alert('Por favor, preencha todos os campos obrigatórios')
       return
     }
 
-    setIsSubmitting(true)
-    
-    setTimeout(() => {
-      onSubmit(formData)
-      setIsSubmitting(false)
+    if (!selectedAppointment) {
+      alert('Nenhuma consulta selecionada')
+      return
+    }
+
+    try {
+      await createPrescription({
+        patientId: selectedAppointment.patientId,
+        patientName: formData.patientName,
+        appointmentId: selectedAppointment.id,
+        prescriptionData: formData
+      })
+
       handleClose()
-    }, 2000)
+      onPrescriptionCreated?.()
+    } catch (error) {
+      console.error('Erro ao emitir prescrição:', error)
+    }
   }
 
   const handleClose = () => {
     setFormData({
-      patientName: '',
-      patientCPF: '',
+      patientName: '',  
       medications: '',
       dosage: '',
       instructions: '',
@@ -62,7 +75,7 @@ export function NewPrescriptionModal({ isOpen, onClose, onSubmit }: NewPrescript
   const handleInputChange = (field: keyof PrescriptionData, value: string) => {
     setFormData(prev => ({
       ...prev,
-      [field]: value
+      [field]: value || ''
     }))
   }
 
@@ -88,21 +101,31 @@ export function NewPrescriptionModal({ isOpen, onClose, onSubmit }: NewPrescript
           </div>
         </div>
 
+        {selectedAppointment && (
+          <div className="p-4 bg-blue-50 border-b border-blue-200">
+            <div className="text-sm text-blue-800">
+              <strong>Paciente selecionado:</strong> {selectedAppointment.patientName || 'Nome não disponível'}
+              <br />
+              <strong>Consulta:</strong> {new Date(selectedAppointment.date).toLocaleDateString('pt-BR')} às {selectedAppointment.time}
+            </div>
+          </div>
+        )}
+
+        {createError && (
+          <div className="p-4 bg-red-50 border-b border-red-200">
+            <div className="text-sm text-red-800">
+              <strong>Erro:</strong> {createError}
+            </div>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Input
               label="Nome do Paciente *"
-              value={formData.patientName}
+              value={formData.patientName || ''}
               onChange={(e) => handleInputChange('patientName', e.target.value)}
               placeholder="Nome completo do paciente"
-              disabled={isSubmitting}
-            />
-
-            <Input
-              label="CPF do Paciente *"
-              value={formData.patientCPF}
-              onChange={(e) => handleInputChange('patientCPF', e.target.value)}
-              placeholder="000.000.000-00"
               disabled={isSubmitting}
             />
           </div>
@@ -112,7 +135,7 @@ export function NewPrescriptionModal({ isOpen, onClose, onSubmit }: NewPrescript
               Medicamentos *
             </label>
             <textarea
-              value={formData.medications}
+              value={formData.medications || ''}
               onChange={(e) => handleInputChange('medications', e.target.value)}
               placeholder="Liste os medicamentos prescritos"
               rows={3}
@@ -124,7 +147,7 @@ export function NewPrescriptionModal({ isOpen, onClose, onSubmit }: NewPrescript
           <div className="mt-6">
             <Input
               label="Dosagem *"
-              value={formData.dosage}
+              value={formData.dosage || ''}
               onChange={(e) => handleInputChange('dosage', e.target.value)}
               placeholder="Ex: 1 comprimido de 8/8 horas"
               disabled={isSubmitting}
@@ -133,10 +156,10 @@ export function NewPrescriptionModal({ isOpen, onClose, onSubmit }: NewPrescript
 
           <div className="mt-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Instruções de Uso
+              Instruções de Uso *
             </label>
             <textarea
-              value={formData.instructions}
+              value={formData.instructions || ''}
               onChange={(e) => handleInputChange('instructions', e.target.value)}
               placeholder="Instruções específicas para o paciente"
               rows={3}
@@ -147,8 +170,8 @@ export function NewPrescriptionModal({ isOpen, onClose, onSubmit }: NewPrescript
 
           <div className="mt-6">
             <Input
-              label="Duração do Tratamento"
-              value={formData.duration}
+              label="Duração do Tratamento *"
+              value={formData.duration || ''}
               onChange={(e) => handleInputChange('duration', e.target.value)}
               placeholder="Ex: 7 dias, 2 semanas"
               disabled={isSubmitting}
@@ -160,7 +183,7 @@ export function NewPrescriptionModal({ isOpen, onClose, onSubmit }: NewPrescript
               Observações
             </label>
             <textarea
-              value={formData.observations}
+              value={formData.observations || ''}
               onChange={(e) => handleInputChange('observations', e.target.value)}
               placeholder="Observações adicionais"
               rows={2}

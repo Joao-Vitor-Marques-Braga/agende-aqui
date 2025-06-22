@@ -18,10 +18,9 @@ export function useRegisterDoctorByClinic() {
     try {
       console.log('Executando registro de médico pela clínica...')
       
-      // Aguarda a autenticação estar pronta
       await new Promise<void>((resolve, reject) => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
-          unsubscribe() // Remove o listener imediatamente
+          unsubscribe()
           if (user) {
             console.log('Autenticação confirmada para:', user.uid)
             resolve()
@@ -30,7 +29,6 @@ export function useRegisterDoctorByClinic() {
           }
         })
         
-        // Timeout de segurança
         setTimeout(() => {
           unsubscribe()
           reject(new Error('Timeout na verificação de autenticação'))
@@ -44,7 +42,6 @@ export function useRegisterDoctorByClinic() {
     } catch (err: any) {
       console.error('Erro no hook useRegisterDoctorByClinic:', err)
       
-      // Se for erro de validação do Yup
       if (err.name === 'ValidationError') {
         if (err.path) {
           setFieldErrors({ [err.path]: err.message })
@@ -52,7 +49,6 @@ export function useRegisterDoctorByClinic() {
           setError(err.message)
         }
       } else {
-        // Outros erros (Firebase, busca no Firestore, etc.)
         setError(err.message || 'Erro inesperado ao cadastrar médico')
       }
       

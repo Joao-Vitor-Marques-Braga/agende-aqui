@@ -44,6 +44,15 @@ export function Header() {
             >
               PARTICIPAR DA REUNIÃO
             </Link>
+
+            <Link 
+              to="/login" 
+              className={`text-white hover:text-blue-200 transition-colors duration-200 font-medium border-b-2 ${
+                isActiveRoute('/login') ? 'border-white' : 'border-transparent hover:border-blue-200'
+              }`}
+            >
+              SAIR
+            </Link>
           </nav>
         </div>
       </div>

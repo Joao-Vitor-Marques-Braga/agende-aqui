@@ -1,0 +1,1 @@
+export { generatePrescriptionPDF } from './pdfGenerator' 

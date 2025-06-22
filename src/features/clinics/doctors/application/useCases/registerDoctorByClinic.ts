@@ -14,10 +14,8 @@ export interface RegisterDoctorByClinicInput {
 
 export async function registerDoctorByClinicUseCase(data: RegisterDoctorByClinicInput) {
   try {
-    // Validar dados de entrada
     await clinicDoctorRegisterSchema.validate(data)
     
-    // Verificar se há uma clínica logada
     const user = auth.currentUser
     if (!user) {
       throw new Error('Clínica não está logada')
@@ -25,7 +23,6 @@ export async function registerDoctorByClinicUseCase(data: RegisterDoctorByClinic
     
     console.log('Usuário logado encontrado:', user.uid)
     
-    // Buscar dados da clínica logada
     const clinicQuery = query(
       collection(db, 'clinics'),
       where('uid', '==', user.uid),
@@ -44,9 +41,8 @@ export async function registerDoctorByClinicUseCase(data: RegisterDoctorByClinic
     
     console.log('Clínica encontrada:', clinicData.name, 'ID:', clinicId)
     
-    // Verificar se já existe médico com o mesmo CRM
     const crmQuery = query(
-      collection(db, 'users'),
+      collection(db, 'doctors'),
       where('crm', '==', data.crm),
       where('role', '==', 'medico')
     )
@@ -56,8 +52,7 @@ export async function registerDoctorByClinicUseCase(data: RegisterDoctorByClinic
     if (!crmSnapshot.empty) {
       throw new Error('Já existe um médico cadastrado com este CRM')
     }
-    
-    // Registrar o médico associado à clínica
+
     const registrationData: RegisterDoctorByClinicData = {
       ...data,
       clinicId,

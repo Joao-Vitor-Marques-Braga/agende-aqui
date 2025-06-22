@@ -1,17 +1,12 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Modal, Button } from '../../../../shared/components'
 import { createAppointment } from '../../application/useCases/createAppointment'
+import { useDoctorAvailability } from '../../application/hooks/useDoctorAvailability'
 
 interface Doctor {
   id: string
   name: string
   specialty: string
-}
-
-interface TimeSlot {
-  id: string
-  time: string
-  available: boolean
 }
 
 interface AppointmentModalProps {
@@ -20,28 +15,29 @@ interface AppointmentModalProps {
   doctor: Doctor | null
 }
 
-const mockTimeSlots: TimeSlot[] = [
-  { id: '1', time: '08:00', available: true },
-  { id: '2', time: '08:30', available: true },
-  { id: '3', time: '09:00', available: false },
-  { id: '4', time: '09:30', available: true },
-  { id: '5', time: '10:00', available: true },
-  { id: '6', time: '10:30', available: false },
-  { id: '7', time: '11:00', available: true },
-  { id: '8', time: '11:30', available: true },
-  { id: '9', time: '14:00', available: true },
-  { id: '10', time: '14:30', available: true },
-  { id: '11', time: '15:00', available: false },
-  { id: '12', time: '15:30', available: true },
-  { id: '13', time: '16:00', available: true },
-  { id: '14', time: '16:30', available: true },
-]
-
-export function AppointmentModal({ isOpen, onClose, doctor }: AppointmentModalProps) {
+export function AppointmentModal({
+  isOpen,
+  onClose,
+  doctor
+}: AppointmentModalProps) {
   const [selectedDate, setSelectedDate] = useState('')
   const [selectedTime, setSelectedTime] = useState('')
   const [loading, setLoading] = useState(false)
   const [showConfirmation, setShowConfirmation] = useState(false)
+
+  const {
+    availableSlots,
+    loading: slotsLoading,
+    error: slotsError,
+    fetchAvailableSlots
+  } = useDoctorAvailability()
+
+  useEffect(() => {
+    if (doctor?.id && selectedDate) {
+      fetchAvailableSlots(doctor.id, selectedDate)
+      setSelectedTime('') // Reset selected time when date changes
+    }
+  }, [doctor, selectedDate, fetchAvailableSlots])
 
   const handleSchedule = async () => {
     if (!selectedDate || !selectedTime || !doctor) {
@@ -59,8 +55,12 @@ export function AppointmentModal({ isOpen, onClose, doctor }: AppointmentModalPr
         date: selectedDate,
         time: selectedTime
       })
+      setShowConfirmation(true)
     } catch (error) {
       console.error('Erro ao agendar consulta:', error)
+      alert(
+        'Ocorreu um erro ao agendar sua consulta. Tente novamente mais tarde.'
+      )
     } finally {
       setLoading(false)
     }
@@ -75,13 +75,17 @@ export function AppointmentModal({ isOpen, onClose, doctor }: AppointmentModalPr
 
   const getMinDate = () => {
     const today = new Date()
+    today.setDate(today.getDate() + 1) // Start from tomorrow
     return today.toISOString().split('T')[0]
   }
 
   const formatDate = (dateString: string) => {
     if (!dateString) return ''
     const date = new Date(dateString)
-    return date.toLocaleDateString('pt-BR')
+    const userTimezoneOffset = date.getTimezoneOffset() * 60000
+    return new Date(date.getTime() + userTimezoneOffset).toLocaleDateString(
+      'pt-BR'
+    )
   }
 
   if (!doctor) return null
@@ -95,30 +99,45 @@ export function AppointmentModal({ isOpen, onClose, doctor }: AppointmentModalPr
       >
         <div className="text-center space-y-4">
           <div className="w-16 h-16 mx-auto rounded-full flex items-center justify-center bg-green-100">
-            <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            <svg
+              className="w-8 h-8 text-green-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 13l4 4L19 7"
+              />
             </svg>
           </div>
-          
+
           <div>
             <h4 className="text-lg font-semibold text-gray-900 mb-2">
               Agendamento confirmado!
             </h4>
             <div className="bg-gray-50 rounded-lg p-4 text-left space-y-2">
-              <p><strong>Médico:</strong> {doctor.name}</p>
-              <p><strong>Especialidade:</strong> {doctor.specialty}</p>
-              <p><strong>Data:</strong> {formatDate(selectedDate)}</p>
-              <p><strong>Horário:</strong> {selectedTime}</p>
+              <p>
+                <strong>Médico:</strong> {doctor.name}
+              </p>
+              <p>
+                <strong>Especialidade:</strong> {doctor.specialty}
+              </p>
+              <p>
+                <strong>Data:</strong> {formatDate(selectedDate)}
+              </p>
+              <p>
+                <strong>Horário:</strong> {selectedTime}
+              </p>
             </div>
             <p className="text-gray-600 text-sm mt-4">
-                Você recebera o link e a senha de acesso em seu email de cadastro.
+              Você recebera o link e a senha de acesso em seu email de cadastro.
             </p>
           </div>
-          
-          <Button
-            className="w-full"
-            onClick={handleConfirmationClose}
-          >
+
+          <Button className="w-full" onClick={handleConfirmationClose}>
             OK
           </Button>
         </div>
@@ -140,23 +159,25 @@ export function AppointmentModal({ isOpen, onClose, doctor }: AppointmentModalPr
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Data da consulta
+            Escolha o dia da consulta
           </label>
           <input
             type="date"
             value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
+            onChange={e => setSelectedDate(e.target.value)}
             min={getMinDate()}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none"
-            style={{
-              '--focus-border-color': '#26348A',
-              '--focus-ring-color': '#26348A33'
-            } as React.CSSProperties}
-            onFocus={(e) => {
+            style={
+              {
+                '--focus-border-color': '#26348A',
+                '--focus-ring-color': '#26348A33'
+              } as React.CSSProperties
+            }
+            onFocus={e => {
               e.target.style.borderColor = '#26348A'
               e.target.style.boxShadow = `0 0 0 3px #26348A33`
             }}
-            onBlur={(e) => {
+            onBlur={e => {
               e.target.style.borderColor = '#d1d5db'
               e.target.style.boxShadow = 'none'
             }}
@@ -165,28 +186,49 @@ export function AppointmentModal({ isOpen, onClose, doctor }: AppointmentModalPr
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Horário disponível
+            Horários disponíveis
           </label>
-          <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto">
-            {mockTimeSlots.map((slot) => (
-              <button
-                key={slot.id}
-                onClick={() => slot.available && setSelectedTime(slot.time)}
-                disabled={!slot.available}
-                className={`
+          <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto p-1 border rounded-lg">
+            {slotsLoading && (
+              <p className="text-gray-500 col-span-3 text-center py-4">
+                Carregando horários...
+              </p>
+            )}
+            {slotsError && (
+              <p className="text-red-500 col-span-3 text-center py-4">
+                {slotsError}
+              </p>
+            )}
+            {!slotsLoading && !slotsError && availableSlots.length > 0 &&
+              availableSlots.map(time => (
+                <button
+                  key={time}
+                  onClick={() => setSelectedTime(time)}
+                  className={`
                   py-2 px-3 rounded-lg text-sm font-medium transition-colors
-                  ${selectedTime === slot.time
-                    ? 'text-white'
-                    : slot.available
-                    ? 'bg-gray-100 hover:bg-gray-200 text-gray-900'
-                    : 'bg-gray-50 text-gray-400 cursor-not-allowed'
+                  ${
+                    selectedTime === time
+                      ? 'text-white'
+                      : 'bg-gray-100 hover:bg-gray-200 text-gray-900'
                   }
                 `}
-                style={selectedTime === slot.time ? { backgroundColor: '#26348A' } : {}}
-              >
-                {slot.time}
-              </button>
-            ))}
+                  style={
+                    selectedTime === time ? { backgroundColor: '#26348A' } : {}
+                  }
+                >
+                  {time}
+                </button>
+              ))}
+            {!slotsLoading && !slotsError && availableSlots.length === 0 && selectedDate && (
+              <p className="text-gray-500 col-span-3 text-center py-4">
+                Não há horários disponíveis para esta data.
+              </p>
+            )}
+            {!slotsLoading && !slotsError && availableSlots.length === 0 && !selectedDate && (
+              <p className="text-gray-500 col-span-3 text-center py-4">
+                Selecione uma data para ver os horários.
+              </p>
+            )}
           </div>
         </div>
 
@@ -199,11 +241,7 @@ export function AppointmentModal({ isOpen, onClose, doctor }: AppointmentModalPr
           >
             Cancelar
           </Button>
-          <Button
-            className="flex-1"
-            onClick={handleSchedule}
-            loading={loading}
-          >
+          <Button className="flex-1" onClick={handleSchedule} loading={loading}>
             Agendar
           </Button>
         </div>

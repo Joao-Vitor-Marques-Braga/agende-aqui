@@ -1,142 +1,226 @@
 import { useState } from 'react'
-import { DoctorHeader, NewPrescriptionModal, SuccessModal } from '../components'
-import { PrescriptionsTable } from '../../../documents/presentation/components'
-
-interface PrescriptionData {
-  patientName: string
-  patientCPF: string
-  medications: string
-  dosage: string
-  instructions: string
-  duration: string
-  observations?: string
-}
-
-interface Prescription {
-  id: string
-  issueDate: string
-  doctor: string
-  fileName: string
-  patientName: string
-}
-
-const mockDoctorPrescriptions: Prescription[] = [
-  {
-    id: '1',
-    issueDate: '15/01/2025',
-    doctor: 'Dr. Carlos Mendes',
-    fileName: 'receita_maria_silva.pdf',
-    patientName: 'Maria Silva Santos'
-  },
-  {
-    id: '2',
-    issueDate: '14/01/2025',
-    doctor: 'Dr. Carlos Mendes',
-    fileName: 'receita_joao_oliveira.pdf',
-    patientName: 'João Carlos Oliveira'
-  },
-  {
-    id: '3',
-    issueDate: '10/01/2025',
-    doctor: 'Dr. Carlos Mendes',
-    fileName: 'receita_ana_costa.pdf',
-    patientName: 'Ana Paula Costa'
-  }
-]
+import { DoctorHeader } from '../components/DoctorHeader'
+import { NewPrescriptionModal, PrescriptionDetailsModal } from '../components'
+import { useCompletedAppointments, type AppointmentWithPrescription } from '../../prescriptions/application/hooks/useCompletedAppointments'
+import type { Prescription } from '../../prescriptions/infrastructure/prescriptionService'
 
 export function DoctorPrescriptionsPage() {
-  const [prescriptions, setPrescriptions] = useState<Prescription[]>(mockDoctorPrescriptions)
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false)
-  const [lastPatientName, setLastPatientName] = useState('')
+  const { appointments, loading, error, refreshAppointments } = useCompletedAppointments()
+  const [selectedAppointment, setSelectedAppointment] = useState<AppointmentWithPrescription | null>(null)
+  const [showNewPrescriptionModal, setShowNewPrescriptionModal] = useState(false)
+  const [showPrescriptionDetailsModal, setShowPrescriptionDetailsModal] = useState(false)
+  const [selectedPrescription, setSelectedPrescription] = useState<Prescription | null>(null)
 
-  const handleNewPrescription = (prescriptionData: PrescriptionData) => {
-    const newPrescription: Prescription = {
-      id: (prescriptions.length + 1).toString(),
-      issueDate: new Date().toLocaleDateString('pt-BR'),
-      doctor: 'Dr. Carlos Mendes',
-      fileName: `receita_${prescriptionData.patientName.toLowerCase().replace(/\s+/g, '_')}.pdf`,
-      patientName: prescriptionData.patientName
+  const handleSelectAppointment = (appointment: AppointmentWithPrescription) => {
+    setSelectedAppointment(appointment)
+    
+    if (appointment.prescription) {
+      // Se já existe prescrição, mostrar detalhes
+      setSelectedPrescription(appointment.prescription)
+      setShowPrescriptionDetailsModal(true)
+    } else {
+      // Se não existe prescrição, abrir modal para criar nova
+      setShowNewPrescriptionModal(true)
     }
+  }
 
-    setPrescriptions(prev => [newPrescription, ...prev])
-    setLastPatientName(prescriptionData.patientName)
-    setIsSuccessModalOpen(true)
+  const handleCloseNewPrescriptionModal = () => {
+    setShowNewPrescriptionModal(false)
+    setSelectedAppointment(null)
+  }
+
+  const handleClosePrescriptionDetailsModal = () => {
+    setShowPrescriptionDetailsModal(false)
+    setSelectedPrescription(null)
+  }
+
+  const handlePrescriptionCreated = () => {
+    setShowNewPrescriptionModal(false)
+    setSelectedAppointment(null)
+    refreshAppointments()
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <DoctorHeader />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: '#26348A' }}></div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <DoctorHeader />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <p className="text-red-800">{error}</p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#26348A' }}>
+    <div className="min-h-screen bg-gray-50">
       <DoctorHeader />
       
-      <div className="flex flex-col">
-        <div className="bg-white rounded-t-[40px] w-full flex-shrink-0 min-h-[80vh]">
-          <div className="px-4 py-12">
-            <div className="container mx-auto max-w-6xl">
-              <div className="text-center mb-8">
-                <h1 className="text-3xl font-bold text-gray-900 mb-4">
-                  Receitas Emitidas
-                </h1>
-                <p className="text-gray-600 mb-8">
-                  Gerencie as receitas que você emitiu para seus pacientes
-                </p>
-                
-                <button
-                  onClick={() => setIsModalOpen(true)}
-                  className="inline-flex items-center px-6 py-3 text-lg font-medium text-white rounded-lg hover:opacity-90 transition-colors"
-                  style={{ backgroundColor: '#26348A' }}
-                >
-                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  EMITIR NOVA RECEITA
-                </button>
-              </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Gerenciar Receitas
+          </h1>
+          <p className="text-gray-600">
+            Visualize e emita receitas para consultas concluídas
+          </p>
+        </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-                <div className="bg-gray-50 rounded-lg shadow p-6 text-center">
-                  <div className="text-3xl font-bold mb-2" style={{ color: '#26348A' }}>
-                    {prescriptions.length}
-                  </div>
-                  <div className="text-gray-600">Total de Receitas</div>
-                </div>
-                
-                <div className="bg-gray-50 rounded-lg shadow p-6 text-center">
-                  <div className="text-3xl font-bold text-green-600 mb-2">
-                    {prescriptions.filter(p => {
-                      const today = new Date()
-                      const issueDate = new Date(p.issueDate.split('/').reverse().join('-'))
-                      return issueDate.toDateString() === today.toDateString()
-                    }).length}
-                  </div>
-                  <div className="text-gray-600">Emitidas Hoje</div>
-                </div>
-                
-                <div className="bg-gray-50 rounded-lg shadow p-6 text-center">
-                  <div className="text-3xl font-bold text-blue-600 mb-2">
-                    {new Set(prescriptions.map(p => p.patientName)).size}
-                  </div>
-                  <div className="text-gray-600">Pacientes Atendidos</div>
-                </div>
+        {/* Estatísticas */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center">
+              <div className="p-2 rounded-full" style={{ backgroundColor: '#E3F2FD' }}>
+                <svg className="w-6 h-6" style={{ color: '#26348A' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
               </div>
-
-              <PrescriptionsTable prescriptions={prescriptions} />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Total de Consultas</p>
+                <p className="text-2xl font-bold text-gray-900">{appointments.length}</p>
+              </div>
             </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center">
+              <div className="p-2 rounded-full" style={{ backgroundColor: '#E8F5E8' }}>
+                <svg className="w-6 h-6" style={{ color: '#2E7D32' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Receitas Emitidas</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {appointments.filter(app => app.prescription).length}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center">
+              <div className="p-2 rounded-full" style={{ backgroundColor: '#FFF3E0' }}>
+                <svg className="w-6 h-6" style={{ color: '#F57C00' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Pendentes</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {appointments.filter(app => !app.prescription).length}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Lista de Consultas */}
+        <div className="bg-white rounded-lg shadow">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900">
+              Consultas Concluídas
+            </h2>
+            <p className="text-sm text-gray-600 mt-1">
+              Clique em uma consulta para emitir ou visualizar a receita
+            </p>
+          </div>
+
+          <div className="p-6">
+            {appointments.length === 0 ? (
+              <div className="text-center py-12">
+                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <h3 className="mt-2 text-sm font-medium text-gray-900">Nenhuma consulta concluída</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Não há consultas concluídas para emitir receitas.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {appointments.slice(0, 5).map((appointment) => (
+                  <div
+                    key={appointment.id}
+                    className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:bg-blue-50 cursor-pointer transition-colors"
+                    onClick={() => handleSelectAppointment(appointment)}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h4 className="text-lg font-semibold text-gray-900">
+                            {appointment.patientName}
+                          </h4>
+                          {appointment.prescription && (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              Receita Emitida
+                            </span>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm text-gray-600">
+                          <div>
+                            <span className="font-medium">Data:</span> {new Date(appointment.date).toLocaleDateString('pt-BR')}
+                          </div>
+                          <div>
+                            <span className="font-medium">Horário:</span> {appointment.time}
+                          </div>
+                          <div>
+                            <span className="font-medium">Tipo:</span> {appointment.type === 'remota' ? 'Remota' : 'Presencial'}
+                          </div>
+                        </div>
+                        {appointment.prescription && (
+                          <div className="mt-2 text-sm text-gray-500">
+                            <span className="font-medium">Receita emitida em:</span> {new Date(appointment.prescription.issueDate).toLocaleDateString('pt-BR')}
+                          </div>
+                        )}
+                      </div>
+                      <div className="ml-4">
+                        <button
+                          className={`px-4 py-2 text-sm font-medium text-white rounded-md hover:opacity-90 transition-colors ${
+                            appointment.prescription 
+                              ? 'bg-green-600 hover:bg-green-700' 
+                              : 'bg-blue-600 hover:bg-blue-700'
+                          }`}
+                          style={appointment.prescription ? {} : { backgroundColor: '#26348A' }}
+                        >
+                          {appointment.prescription ? 'Ver Receita' : 'Emitir Receita'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
 
+      {/* Modais */}
       <NewPrescriptionModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSubmit={handleNewPrescription}
+        isOpen={showNewPrescriptionModal}
+        onClose={handleCloseNewPrescriptionModal}
+        selectedAppointment={selectedAppointment}
+        onPrescriptionCreated={handlePrescriptionCreated}
       />
 
-      <SuccessModal
-        isOpen={isSuccessModalOpen}
-        onClose={() => setIsSuccessModalOpen(false)}
-        title="Receita Emitida com Sucesso!"
-        message={`A receita para ${lastPatientName} foi emitida e estará disponível para download em instantes.`}
-        icon="prescription"
+      <PrescriptionDetailsModal
+        isOpen={showPrescriptionDetailsModal}
+        onClose={handleClosePrescriptionDetailsModal}
+        prescription={selectedPrescription}
       />
     </div>
   )

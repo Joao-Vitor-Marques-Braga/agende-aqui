@@ -35,8 +35,8 @@ export function useClinicDoctors() {
         setError(null)
         
         console.log('Buscando clínica para usuário:', user.uid)
+        console.log('Email do usuário:', user.email)
 
-        // Primeiro, busca os dados da clínica
         const clinicQuery = query(
           collection(db, 'clinics'),
           where('uid', '==', user.uid),
@@ -47,7 +47,21 @@ export function useClinicDoctors() {
 
         if (clinicSnapshot.empty) {
           console.log('Clínica não encontrada para UID:', user.uid)
-          setError('Clínica não encontrada')
+          
+          const debugQuery = query(
+            collection(db, 'clinics'),
+            where('uid', '==', user.uid)
+          )
+          const debugSnapshot = await getDocs(debugQuery)
+          
+          if (debugSnapshot.empty) {
+            console.log('Nenhum documento encontrado para UID:', user.uid)
+            setError('Clínica não encontrada. Verifique se você está logado corretamente.')
+          } else {
+            const debugData = debugSnapshot.docs[0].data()
+            console.log('Documento encontrado mas sem role correto:', debugData)
+            setError('Clínica não encontrada com perfil correto.')
+          }
           setLoading(false)
           return
         }
@@ -56,10 +70,10 @@ export function useClinicDoctors() {
         const clinicId = clinicSnapshot.docs[0].id
 
         console.log('Clínica encontrada:', clinicData.name, 'ID:', clinicId)
+        console.log('Dados completos da clínica:', clinicData)
 
-        // Busca médicos associados à clínica
         const doctorsQuery = query(
-          collection(db, 'users'),
+          collection(db, 'doctors'),
           where('clinicId', '==', clinicId),
           where('role', '==', 'medico')
         )
@@ -96,7 +110,6 @@ export function useClinicDoctors() {
       try {
         console.log('Atualizando lista de médicos...')
         
-        // Busca novamente os dados da clínica
         const clinicQuery = query(
           collection(db, 'clinics'),
           where('uid', '==', auth.currentUser.uid),
@@ -112,9 +125,8 @@ export function useClinicDoctors() {
 
         const clinicId = clinicSnapshot.docs[0].id
 
-        // Busca médicos atualizados
         const doctorsQuery = query(
-          collection(db, 'users'),
+          collection(db, 'doctors'),
           where('clinicId', '==', clinicId),
           where('role', '==', 'medico')
         )

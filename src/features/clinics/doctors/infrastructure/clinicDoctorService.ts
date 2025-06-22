@@ -17,13 +17,11 @@ export async function registerDoctorByClinic(data: RegisterDoctorByClinicData) {
   try {
     console.log('Registrando médico pela clínica:', data.clinicName)
     
-    // Criar usuário no Firebase Auth
     const cred = await createUserWithEmailAndPassword(auth, data.email, data.password)
     
     console.log('Usuário criado no Firebase Auth:', cred.user.uid)
     
-    // Salvar dados do médico na coleção 'users'
-    await addDoc(collection(db, 'users'), {
+    await addDoc(collection(db, 'doctors'), {
       uid: cred.user.uid,
       name: data.name,
       crm: data.crm,
@@ -43,7 +41,6 @@ export async function registerDoctorByClinic(data: RegisterDoctorByClinicData) {
   } catch (error: any) {
     console.error('Erro ao registrar médico pela clínica:', error)
     
-    // Tratar erros específicos do Firebase Auth
     if (error.code) {
       switch (error.code) {
         case 'auth/email-already-in-use':

@@ -32,7 +32,13 @@ export function LoginPage() {
 
     return (
         <div className="min-h-screen" style={{ backgroundColor: '#26348A' }}>
-            <Header />
+            <div className="flex flex-col">
+                <div className="mb-4">
+                    <h1 className="text-3xl text-white font-bold cursor-pointer hover:opacity-90 transition-opacity text-center mt-6">
+                        Agende aqui!
+                    </h1>
+                </div>
+            </div>
             <div className="flex flex-col">
                 <div className="mb-4"></div>
                 <div className="bg-white rounded-t-[40px] w-full flex-shrink-0 min-h-[89.5vh]">

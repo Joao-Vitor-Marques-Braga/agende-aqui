@@ -1,28 +1,10 @@
 import { Header } from '../../../../shared/components'
 import { PrescriptionsTable } from '../components'
-
-const mockPrescriptions = [
-  {
-    id: '1',
-    issueDate: '03/06/2025',
-    doctor: 'Dra. Flavia Martins Ferreira',
-    fileName: 'receita_20250603.pdf'
-  },
-  {
-    id: '2',
-    issueDate: '24/05/2025',
-    doctor: 'Dr. Alessandro Pereira Cruvinel',
-    fileName: 'receita_20250524.pdf'
-  },
-  {
-    id: '3',
-    issueDate: '03/12/2024',
-    doctor: 'Dra. Flavia Martins Ferreira',
-    fileName: 'receita_20241203.pdf'
-  }
-]
+import { usePatientPrescriptions } from '../../application/hooks/usePatientPrescriptions'
 
 export function PrescriptionsPage() {
+  const { prescriptions, loading, error, refreshPrescriptions } = usePatientPrescriptions()
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#26348A' }}>
       <Header />
@@ -33,11 +15,58 @@ export function PrescriptionsPage() {
             <div className="container mx-auto max-w-6xl">
               <div className="text-center mb-12">
                 <h1 className="text-2xl font-bold text-gray-900 mb-6 leading-relaxed">
-                  FAÇA O DOWNLOAD PARA VISUALIZAR AS RECEITAS JÁ EMITIDAS PARA VOCÊ DE ACORDO COM O MÉDICO E/OU DATA
+                  SUAS RECEITAS MÉDICAS
                 </h1>
+                <p className="text-gray-600 mb-8">
+                  Visualize e faça download das receitas emitidas pelos médicos
+                </p>
               </div>
 
-              <PrescriptionsTable prescriptions={mockPrescriptions} />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div className="bg-gray-50 rounded-lg shadow p-6 text-center">
+                  <div className="text-3xl font-bold mb-2" style={{ color: '#26348A' }}>
+                    {loading ? '...' : prescriptions.length}
+                  </div>
+                  <div className="text-gray-600">Total de Receitas</div>
+                </div>
+                
+                <div className="bg-gray-50 rounded-lg shadow p-6 text-center">
+                  <div className="text-3xl font-bold text-green-600 mb-2">
+                    {loading ? '...' : prescriptions.filter(p => {
+                      const issueDate = new Date(p.issueDate)
+                      const thirtyDaysAgo = new Date()
+                      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+                      return issueDate > thirtyDaysAgo
+                    }).length}
+                  </div>
+                  <div className="text-gray-600">Últimos 30 dias</div>
+                </div>
+                
+                <div className="bg-gray-50 rounded-lg shadow p-6 text-center">
+                  <div className="text-3xl font-bold text-blue-600 mb-2">
+                    {loading ? '...' : new Set(prescriptions.map(p => p.doctorName)).size}
+                  </div>
+                  <div className="text-gray-600">Médicos Diferentes</div>
+                </div>
+              </div>
+
+              {error && (
+                <div className="text-center py-4 mb-6">
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div className="text-red-600 text-lg">
+                      {error}
+                    </div>
+                    <button
+                      onClick={refreshPrescriptions}
+                      className="mt-2 text-blue-600 hover:underline"
+                    >
+                      Tentar novamente
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <PrescriptionsTable prescriptions={prescriptions} loading={loading} />
             </div>
           </div>
         </div>

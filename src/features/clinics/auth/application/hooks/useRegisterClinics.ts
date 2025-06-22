@@ -17,7 +17,6 @@ export function useRegisterClinics() {
     } catch (err: any) {
       console.error('Erro no hook useRegisterClinics:', err)
       
-      // Se for erro de validação do Yup
       if (err.name === 'ValidationError') {
         if (err.path) {
           setFieldErrors({ [err.path]: err.message })
